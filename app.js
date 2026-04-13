@@ -1,8 +1,9 @@
 const App = {
     currentRoute: null,
     
-    init() {
-        Storage.initializeDefaultData();
+    async init() {
+        await Storage.init();
+        await Storage.initializeDefaultData();
         this.setupNavigation();
         this.setupScrollEffects();
         this.setupAnimations();

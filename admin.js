@@ -5,7 +5,8 @@ const Admin = {
     pendingImages: [],
     deleteCallback: null,
     
-    init() {
+    async init() {
+        await Storage.init();
         this.checkAuth();
         this.setupEventListeners();
     },

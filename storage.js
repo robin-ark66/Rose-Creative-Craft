@@ -4,6 +4,57 @@ const Storage = {
         IMAGES: 'craft_images',
         SESSION: 'craft_session'
     },
+    useFirebase: false,
+    
+    async init() {
+        this.useFirebase = typeof firebase !== 'undefined' && firebaseReady && isFirebaseConfigured();
+        
+        if (this.useFirebase) {
+            await this.syncFromFirebase();
+        }
+    },
+    
+    async syncFromFirebase() {
+        if (!this.useFirebase) return;
+        
+        try {
+            const categoriesSnap = await db.collection('categories').get();
+            const categoriesData = {};
+            categoriesSnap.forEach(doc => {
+                categoriesData[doc.id] = doc.data();
+            });
+            localStorage.setItem(this.KEYS.CATEGORIES, JSON.stringify(categoriesData));
+            
+            const imagesSnap = await db.collection('images').get();
+            const imagesData = {};
+            imagesSnap.forEach(doc => {
+                imagesData[doc.id] = doc.data();
+            });
+            localStorage.setItem(this.KEYS.IMAGES, JSON.stringify(imagesData));
+        } catch (e) {
+            console.error('Sync error:', e);
+        }
+    },
+    
+    async saveToFirebase(collection, id, data) {
+        if (!this.useFirebase) return;
+        
+        try {
+            await db.collection(collection).doc(id).set(data);
+        } catch (e) {
+            console.error('Save error:', e);
+        }
+    },
+    
+    async deleteFromFirebase(collection, id) {
+        if (!this.useFirebase) return;
+        
+        try {
+            await db.collection(collection).doc(id).delete();
+        } catch (e) {
+            console.error('Delete error:', e);
+        }
+    },
     
     generateId() {
         return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -25,9 +76,6 @@ const Storage = {
             return true;
         } catch (e) {
             console.error('Storage set error:', e);
-            if (e.name === 'QuotaExceededError') {
-                this.showQuotaWarning();
-            }
             return false;
         }
     },
@@ -42,24 +90,28 @@ const Storage = {
         }
     },
     
-    showQuotaWarning() {
-        console.warn('LocalStorage quota exceeded. Consider clearing old data.');
-    },
-    
     getCategories() {
-        return this.get(this.KEYS.CATEGORIES) || [];
+        const data = this.get(this.KEYS.CATEGORIES);
+        return data ? Object.values(data) : [];
     },
     
     setCategories(categories) {
-        return this.set(this.KEYS.CATEGORIES, categories);
+        const data = {};
+        categories.forEach(cat => data[cat.id] = cat);
+        const result = this.set(this.KEYS.CATEGORIES, data);
+        
+        if (result && this.useFirebase) {
+            categories.forEach(cat => this.saveToFirebase('categories', cat.id, cat));
+        }
+        return result;
     },
     
     getCategory(id) {
-        const categories = this.getCategories();
-        return categories.find(c => c.id === id);
+        const data = this.get(this.KEYS.CATEGORIES);
+        return data ? data[id] : null;
     },
     
-    addCategory(category) {
+    async addCategory(category) {
         const categories = this.getCategories();
         const newCategory = {
             id: this.generateId(),
@@ -69,48 +121,74 @@ const Storage = {
             updatedAt: new Date().toISOString()
         };
         categories.push(newCategory);
-        this.setCategories(categories);
+        
+        const data = {};
+        categories.forEach(cat => data[cat.id] = cat);
+        this.set(this.KEYS.CATEGORIES, data);
+        
+        if (this.useFirebase) {
+            await this.saveToFirebase('categories', newCategory.id, newCategory);
+        }
+        
         return newCategory;
     },
     
-    updateCategory(id, updates) {
-        const categories = this.getCategories();
-        const index = categories.findIndex(c => c.id === id);
-        if (index !== -1) {
-            categories[index] = {
-                ...categories[index],
+    async updateCategory(id, updates) {
+        const data = this.get(this.KEYS.CATEGORIES);
+        if (data && data[id]) {
+            data[id] = {
+                ...data[id],
                 ...updates,
                 updatedAt: new Date().toISOString()
             };
-            this.setCategories(categories);
-            return categories[index];
+            this.set(this.KEYS.CATEGORIES, data);
+            
+            if (this.useFirebase) {
+                await this.saveToFirebase('categories', id, data[id]);
+            }
+            return data[id];
         }
         return null;
     },
     
-    deleteCategory(id) {
+    async deleteCategory(id) {
         const categories = this.getCategories();
         const filtered = categories.filter(c => c.id !== id);
-        this.setCategories(filtered);
+        
+        const data = {};
+        filtered.forEach(cat => data[cat.id] = cat);
+        this.set(this.KEYS.CATEGORIES, data);
+        
         const images = this.getImages();
         const filteredImages = images.filter(img => img.categoryId !== id);
-        this.setImages(filteredImages);
+        const imagesData = {};
+        filteredImages.forEach(img => imagesData[img.id] = img);
+        this.set(this.KEYS.IMAGES, imagesData);
+        
+        if (this.useFirebase) {
+            await this.deleteFromFirebase('categories', id);
+            const allImages = await db.collection('images').where('categoryId', '==', id).get();
+            allImages.forEach(doc => doc.ref.delete());
+        }
         return true;
     },
     
     getImages(categoryId = null) {
-        const images = this.get(this.KEYS.IMAGES) || [];
+        const data = this.get(this.KEYS.IMAGES);
+        let images = data ? Object.values(data) : [];
         if (categoryId) {
-            return images.filter(img => img.categoryId === categoryId);
+            images = images.filter(img => img.categoryId === categoryId);
         }
         return images;
     },
     
     setImages(images) {
-        return this.set(this.KEYS.IMAGES, images);
+        const data = {};
+        images.forEach(img => data[img.id] = img);
+        return this.set(this.KEYS.IMAGES, data);
     },
     
-    addImage(imageData) {
+    async addImage(imageData) {
         const images = this.getImages();
         const newImage = {
             id: this.generateId(),
@@ -120,10 +198,19 @@ const Storage = {
             createdAt: new Date().toISOString()
         };
         images.push(newImage);
-        return this.setImages(images) ? newImage : false;
+        
+        const data = {};
+        images.forEach(img => data[img.id] = img);
+        this.set(this.KEYS.IMAGES, data);
+        
+        if (this.useFirebase) {
+            await this.saveToFirebase('images', newImage.id, newImage);
+        }
+        
+        return newImage;
     },
     
-    addImages(imageDataArray) {
+    async addImages(imageDataArray) {
         const images = this.getImages();
         const newImages = imageDataArray.map(data => ({
             id: this.generateId(),
@@ -133,13 +220,31 @@ const Storage = {
             createdAt: new Date().toISOString()
         }));
         images.push(...newImages);
-        return this.setImages(images) ? newImages : false;
+        
+        const data = {};
+        images.forEach(img => data[img.id] = img);
+        this.set(this.KEYS.IMAGES, data);
+        
+        if (this.useFirebase) {
+            for (const img of newImages) {
+                await this.saveToFirebase('images', img.id, img);
+            }
+        }
+        
+        return newImages;
     },
     
-    deleteImage(id) {
+    async deleteImage(id) {
         const images = this.getImages();
         const filtered = images.filter(img => img.id !== id);
-        this.setImages(filtered);
+        
+        const data = {};
+        filtered.forEach(img => data[img.id] = img);
+        this.set(this.KEYS.IMAGES, data);
+        
+        if (this.useFirebase) {
+            await this.deleteFromFirebase('images', id);
+        }
         return true;
     },
     
@@ -177,34 +282,32 @@ const Storage = {
         return this.getSession() !== null;
     },
     
-    initializeDefaultData() {
-        if (this.getCategories().length === 0) {
+    async initializeDefaultData() {
+        const categories = this.getCategories();
+        
+        if (categories.length === 0) {
             const defaultCategories = [
                 {
-                    name: 'Handwoven Baskets',
-                    bannerImage: 'https://images.unsplash.com/photo-1595407660626-db35dcd16609?w=800&h=600&fit=crop',
-                    colors: ['#D4A574', '#8B7355']
+                    name: 'Wedding Accessories',
+                    bannerImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&h=600&fit=crop'
                 },
                 {
-                    name: 'Ceramic Planters',
-                    bannerImage: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=800&h=600&fit=crop',
-                    colors: ['#A67B52', '#6B5B4F']
+                    name: 'Holiday Decorations',
+                    bannerImage: 'https://images.unsplash.com/photo-1512389142860-9c449e58a814?w=800&h=600&fit=crop'
                 },
                 {
-                    name: 'Macramé Wall Art',
-                    bannerImage: 'https://images.unsplash.com/photo-1524230572899-a752b3835840?w=800&h=600&fit=crop',
-                    colors: ['#C4956A', '#E8D5C4']
+                    name: 'Decorative Vases',
+                    bannerImage: 'https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=800&h=600&fit=crop'
                 },
                 {
-                    name: 'Wooden Home Decor',
-                    bannerImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop',
-                    colors: ['#8B6914', '#D4B896']
+                    name: 'Woolen Items',
+                    bannerImage: 'https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=800&h=600&fit=crop'
                 }
             ];
             
-            defaultCategories.forEach(cat => {
-                this.addCategory(cat);
-            });
+            for (const cat of defaultCategories) {
+                await this.addCategory(cat);
+            }
         }
     },
     
@@ -212,6 +315,15 @@ const Storage = {
         this.remove(this.KEYS.CATEGORIES);
         this.remove(this.KEYS.IMAGES);
         this.remove(this.KEYS.SESSION);
+        
+        if (this.useFirebase) {
+            db.collection('categories').get().then(snap => {
+                snap.forEach(doc => doc.ref.delete());
+            });
+            db.collection('images').get().then(snap => {
+                snap.forEach(doc => doc.ref.delete());
+            });
+        }
     },
     
     getStorageUsage() {
