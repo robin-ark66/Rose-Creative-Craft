@@ -53,12 +53,17 @@ const Gallery = {
             return;
         }
         
-        window.scrollTo(0, 0);
-        
         document.getElementById('galleryTitle').textContent = category.name;
         
         this.currentImages = Storage.getImages(categoryId);
         this.renderGallery();
+        
+        setTimeout(() => {
+            const galleryHeader = document.querySelector('.gallery-header');
+            if (galleryHeader) {
+                galleryHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
     },
     
     renderGallery() {
