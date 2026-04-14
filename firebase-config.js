@@ -45,13 +45,13 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app, db, storage;
+let app, db;
 let firebaseReady = false;
 
 function initFirebase() {
   if (typeof firebase === 'undefined') {
     console.warn("Firebase SDK not loaded yet. Will retry...");
-    setTimeout(initFirebase, 100);
+    setTimeout(initFirebase, 200);
     return;
   }
   
@@ -64,7 +64,6 @@ function initFirebase() {
   try {
     app = firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
-    storage = firebase.storage();
     firebaseReady = true;
     console.log("Firebase initialized successfully!");
   } catch (e) {
@@ -78,11 +77,5 @@ function isFirebaseConfigured() {
   return firebaseReady && firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey !== "";
 }
 
-// Initialize Firebase when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(initFirebase, 100);
-  });
-} else {
-  setTimeout(initFirebase, 100);
-}
+// Initialize Firebase immediately (scripts are loaded synchronously in head)
+initFirebase();

@@ -504,9 +504,9 @@ const Admin = {
             thumbnail: img.thumbnail
         }));
         
-        const success = Storage.addImages(imageDataArray);
+        const result = await Storage.addImages(imageDataArray);
         
-        if (!success) {
+        if (!result) {
             this.showToast('Storage full! Upload failed.', 'error');
             this.closeModal('uploadModal');
             return;
