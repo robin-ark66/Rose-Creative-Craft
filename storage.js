@@ -7,6 +7,9 @@ const Storage = {
     useFirebase: false,
     
     async init() {
+        // Wait a bit for firebase-config.js to initialize
+        await this.waitForFirebase();
+        
         this.useFirebase = typeof firebase !== 'undefined' && firebaseReady && isFirebaseConfigured();
         
         if (this.useFirebase) {
@@ -14,16 +17,33 @@ const Storage = {
         }
     },
     
+    waitForFirebase() {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const check = () => {
+                attempts++;
+                if (firebaseReady !== undefined || attempts > 50) {
+                    resolve();
+                } else {
+                    setTimeout(check, 50);
+                }
+            };
+            check();
+        });
+    },
+    
     async syncFromFirebase() {
-        if (!this.useFirebase) return;
+        if (!this.useFirebase || !db) return;
         
         try {
+            console.log('Syncing from Firebase...');
             const categoriesSnap = await db.collection('categories').get();
             const categoriesData = {};
             categoriesSnap.forEach(doc => {
                 categoriesData[doc.id] = doc.data();
             });
             localStorage.setItem(this.KEYS.CATEGORIES, JSON.stringify(categoriesData));
+            console.log('Synced categories:', categoriesSnap.size);
             
             const imagesSnap = await db.collection('images').get();
             const imagesData = {};
@@ -31,6 +51,7 @@ const Storage = {
                 imagesData[doc.id] = doc.data();
             });
             localStorage.setItem(this.KEYS.IMAGES, JSON.stringify(imagesData));
+            console.log('Synced images:', imagesSnap.size);
         } catch (e) {
             console.error('Sync error:', e);
         }
@@ -92,7 +113,9 @@ const Storage = {
     
     getCategories() {
         const data = this.get(this.KEYS.CATEGORIES);
-        return data ? Object.values(data) : [];
+        if (!data) return [];
+        if (Array.isArray(data)) return data;
+        return Object.values(data);
     },
     
     setCategories(categories) {
@@ -175,7 +198,13 @@ const Storage = {
     
     getImages(categoryId = null) {
         const data = this.get(this.KEYS.IMAGES);
-        let images = data ? Object.values(data) : [];
+        let images = [];
+        if (!data) return [];
+        if (Array.isArray(data)) {
+            images = data;
+        } else {
+            images = Object.values(data);
+        }
         if (categoryId) {
             images = images.filter(img => img.categoryId === categoryId);
         }

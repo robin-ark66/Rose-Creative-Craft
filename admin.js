@@ -6,7 +6,12 @@ const Admin = {
     deleteCallback: null,
     
     async init() {
-        await Storage.init();
+        try {
+            await Storage.init();
+        } catch (e) {
+            console.error('Storage init error:', e);
+            Storage.useFirebase = false;
+        }
         this.checkAuth();
         this.setupEventListeners();
     },

@@ -33,16 +33,6 @@ STEP 3: Get Your Firebase Config
 STEP 4: Update This File
 ================================================================================
 Replace the firebaseConfig below with your own config from Step 3.
-
-Your config will look like this:
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123"
-};
 */
 
 const firebaseConfig = {
@@ -56,23 +46,43 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let app, db, storage;
+let firebaseReady = false;
 
 function initFirebase() {
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY") {
-    console.warn("Firebase not configured. Using localStorage fallback.");
-    return false;
+  if (typeof firebase === 'undefined') {
+    console.warn("Firebase SDK not loaded yet. Will retry...");
+    setTimeout(initFirebase, 100);
+    return;
   }
   
-  app = firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
-  storage = firebase.storage();
-  return true;
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY") {
+    console.warn("Firebase not configured. Using localStorage fallback.");
+    firebaseReady = false;
+    return;
+  }
+  
+  try {
+    app = firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    storage = firebase.storage();
+    firebaseReady = true;
+    console.log("Firebase initialized successfully!");
+  } catch (e) {
+    console.error("Firebase initialization error:", e);
+    firebaseReady = false;
+  }
 }
 
 // Check if Firebase is configured
 function isFirebaseConfigured() {
-  return firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey !== "";
+  return firebaseReady && firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey !== "";
 }
 
-// Initialize on load
-const firebaseReady = initFirebase();
+// Initialize Firebase when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initFirebase, 100);
+  });
+} else {
+  setTimeout(initFirebase, 100);
+}

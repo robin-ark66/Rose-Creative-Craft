@@ -2,18 +2,31 @@ const App = {
     currentRoute: null,
     
     async init() {
-        await Storage.init();
-        await Storage.initializeDefaultData();
-        this.setupNavigation();
-        this.setupScrollEffects();
-        this.setupAnimations();
-        this.renderCategories();
-        this.setupContactForm();
-        this.handleRoute();
-        
-        window.addEventListener('hashchange', () => this.handleRoute());
-        
-        this.animateStats();
+        try {
+            await Storage.init();
+            await Storage.initializeDefaultData();
+            this.setupNavigation();
+            this.setupScrollEffects();
+            this.setupAnimations();
+            this.renderCategories();
+            this.setupContactForm();
+            this.handleRoute();
+            
+            window.addEventListener('hashchange', () => this.handleRoute());
+            
+            this.animateStats();
+        } catch (e) {
+            console.error('App initialization error:', e);
+            // Fallback: initialize with localStorage only
+            Storage.useFirebase = false;
+            this.setupNavigation();
+            this.setupScrollEffects();
+            this.setupAnimations();
+            this.renderCategories();
+            this.setupContactForm();
+            this.handleRoute();
+            this.animateStats();
+        }
     },
     
     setupNavigation() {
@@ -164,6 +177,8 @@ const App = {
         const grid = document.getElementById('categoriesGrid');
         const emptyState = document.getElementById('emptyState');
         const categories = Storage.getCategories();
+        
+        console.log('Rendering categories:', categories.length);
         
         if (categories.length === 0) {
             grid.style.display = 'none';
