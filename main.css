@@ -926,6 +926,16 @@ input, textarea {
     color: rgba(255, 255, 255, 0.5);
 }
 
+.footer-bottom p {
+    margin: 0;
+}
+
+.developer-credit {
+    font-size: 0.8rem !important;
+    margin-top: 8px !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
 .btn {
     display: inline-flex;
     align-items: center;
