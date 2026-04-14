@@ -53,6 +53,8 @@ const Gallery = {
             return;
         }
         
+        window.scrollTo(0, 0);
+        
         document.getElementById('galleryTitle').textContent = category.name;
         
         this.currentImages = Storage.getImages(categoryId);
