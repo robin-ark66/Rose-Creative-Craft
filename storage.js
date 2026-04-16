@@ -7,10 +7,11 @@ const Storage = {
     useFirebase: false,
     
     async init() {
-        // Wait a bit for firebase-config.js to initialize
+        // Wait for firebase-config.js to initialize
         await this.waitForFirebase();
         
         this.useFirebase = typeof firebase !== 'undefined' && firebaseReady && isFirebaseConfigured();
+        console.log('Firebase status - SDK:', typeof firebase !== 'undefined', 'Ready:', firebaseReady, 'Configured:', isFirebaseConfigured(), 'Using Firebase:', this.useFirebase);
         
         if (this.useFirebase) {
             await this.syncFromFirebase();
@@ -254,10 +255,14 @@ const Storage = {
         images.forEach(img => data[img.id] = img);
         this.set(this.KEYS.IMAGES, data);
         
+        console.log('Saving', newImages.length, 'images to Firebase:', this.useFirebase);
+        
         if (this.useFirebase) {
             for (const img of newImages) {
+                console.log('Saving image to Firebase:', img.id);
                 await this.saveToFirebase('images', img.id, img);
             }
+            console.log('All images saved to Firebase');
         }
         
         return newImages;
