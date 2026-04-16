@@ -5,8 +5,14 @@ const Storage = {
         SESSION: 'craft_session'
     },
     useFirebase: false,
+    initialized: false,
     
     async init() {
+        if (this.initialized) {
+            await this.refreshFromFirebase();
+            return;
+        }
+        
         // Wait for firebase-config.js to initialize
         await this.waitForFirebase();
         
@@ -16,6 +22,8 @@ const Storage = {
         if (this.useFirebase) {
             await this.syncFromFirebase();
         }
+        
+        this.initialized = true;
     },
     
     waitForFirebase() {
@@ -23,14 +31,20 @@ const Storage = {
             let attempts = 0;
             const check = () => {
                 attempts++;
-                if (firebaseReady !== undefined || attempts > 50) {
+                if (firebaseReady === true || attempts > 50) {
                     resolve();
                 } else {
-                    setTimeout(check, 50);
+                    setTimeout(check, 100);
                 }
             };
             check();
         });
+    },
+    
+    async refreshFromFirebase() {
+        if (this.useFirebase && db) {
+            await this.syncFromFirebase();
+        }
     },
     
     async syncFromFirebase() {

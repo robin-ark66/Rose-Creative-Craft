@@ -2,6 +2,19 @@
     background: var(--color-bg);
 }
 
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+.btn .spinner {
+    margin-right: 4px;
+}
+
 .login-screen {
     min-height: 100vh;
     display: flex;

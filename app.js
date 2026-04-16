@@ -316,8 +316,13 @@ const App = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    App.init();
-});
+// Initialize when DOM is ready and Firebase has had time to load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => App.init(), 200);
+    });
+} else {
+    setTimeout(() => App.init(), 200);
+}
 
 window.App = App;

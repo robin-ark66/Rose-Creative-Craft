@@ -4,10 +4,16 @@ const Admin = {
     uploadCategoryId: null,
     pendingImages: [],
     deleteCallback: null,
+    initialized: false,
     
     async init() {
+        if (this.initialized) return;
+        this.initialized = true;
+        
         try {
             await Storage.init();
+            // Wait a bit more for Firebase sync to complete
+            await new Promise(resolve => setTimeout(resolve, 500));
         } catch (e) {
             console.error('Storage init error:', e);
             Storage.useFirebase = false;
@@ -33,6 +39,28 @@ const Admin = {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('adminWrapper').style.display = 'flex';
         this.renderCurrentPage();
+    },
+    
+    async refreshData() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<svg class="spinner" width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4"/></svg> Refreshing...';
+        }
+        
+        try {
+            await Storage.refreshFromFirebase();
+            this.renderCurrentPage();
+            this.showToast('Data refreshed successfully', 'success');
+        } catch (e) {
+            console.error('Refresh error:', e);
+            this.showToast('Error refreshing data', 'error');
+        }
+        
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh';
+        }
     },
     
     setupEventListeners() {
@@ -662,8 +690,13 @@ const Admin = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    Admin.init();
-});
+// Initialize when DOM is ready and Firebase has had time to load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => Admin.init(), 200);
+    });
+} else {
+    setTimeout(() => Admin.init(), 200);
+}
 
 window.Admin = Admin;
