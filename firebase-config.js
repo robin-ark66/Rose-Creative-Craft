@@ -1,82 +1,59 @@
-// Firebase Configuration
-// Follow these steps to set up Firebase for your project:
-
-/*
-================================================================================
-STEP 1: Create a Firebase Project
-================================================================================
-1. Go to https://console.firebase.google.com/
-2. Click "Add project"
-3. Enter project name: "rose-creative-craft" (or your choice)
-4. Disable Google Analytics (optional, click "Create project")
-5. Wait for project to be created, then click "Continue"
-
-================================================================================
-STEP 2: Enable Firestore Database
-================================================================================
-1. In Firebase Console, go to "Build" → "Firestore Database"
-2. Click "Create database"
-3. Select "Start in test mode" (we'll add security later)
-4. Choose a location closest to your users
-5. Click "Enable"
-
-================================================================================
-STEP 3: Get Your Firebase Config
-================================================================================
-1. Go to Project Settings (gear icon)
-2. Scroll down to "Your apps"
-3. Click the web icon (</>) to add a web app
-4. Register app with a nickname
-5. Copy the firebaseConfig object
-
-================================================================================
-STEP 4: Update This File
-================================================================================
-Replace the firebaseConfig below with your own config from Step 3.
-*/
-
-const firebaseConfig = {
-  apiKey: "AIzaSyD31YAiZOv9OOr53RQYZxYk1xuUZ9ZZAjs",
-  authDomain: "rose-creative-craft.firebaseapp.com",
-  projectId: "rose-creative-craft",
-  storageBucket: "rose-creative-craft.firebasestorage.app",
-  messagingSenderId: "668663986772",
-  appId: "1:668663986772:web:a4691aa351cfd46851cbc1"
+const FirebaseConfig = {
+    apiKey: "AIzaSyD31YAiZOv9OOr53RQYZxYk1xuUZ9ZZAjs",
+    authDomain: "rose-creative-craft.firebaseapp.com",
+    projectId: "rose-creative-craft",
+    storageBucket: "rose-creative-craft.firebasestorage.app",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef123456"
 };
 
-// Initialize Firebase
-let app, db, storage;
-let firebaseReady = false;
+let firebaseInitialized = false;
+let db = null;
+let storage = null;
 
-function initFirebase() {
-  if (typeof firebase === 'undefined') {
-    console.warn("Firebase SDK not loaded yet. Will retry...");
-    setTimeout(initFirebase, 200);
-    return;
-  }
-  
-  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY") {
-    console.warn("Firebase not configured. Using localStorage fallback.");
-    firebaseReady = false;
-    return;
-  }
-  
-  try {
-    app = firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    storage = firebase.storage();
-    firebaseReady = true;
-    console.log("Firebase initialized successfully with Storage!");
-  } catch (e) {
-    console.error("Firebase initialization error:", e);
-    firebaseReady = false;
-  }
+async function initFirebase() {
+    if (firebaseInitialized) return { db, storage };
+    
+    try {
+        if (typeof firebase !== 'undefined') {
+            firebase.initializeApp(FirebaseConfig);
+            db = firebase.firestore();
+            storage = firebase.storage();
+            
+            const settings = { experimentalAutoDetectLongPolling: true };
+            db.settings(settings);
+            
+            await db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+            
+            firebaseInitialized = true;
+            console.log('Firebase initialized successfully');
+            return { db, storage };
+        } else {
+            throw new Error('Firebase SDK not loaded');
+        }
+    } catch (error) {
+        console.warn('Firebase initialization failed:', error);
+        return { db: null, storage: null };
+    }
 }
 
-// Check if Firebase is configured
-function isFirebaseConfigured() {
-  return firebaseReady && firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.apiKey !== "";
+function waitForFirebase() {
+    return new Promise((resolve) => {
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        const check = () => {
+            if (firebaseInitialized || attempts >= maxAttempts) {
+                resolve();
+            } else {
+                attempts++;
+                setTimeout(check, 100);
+            }
+        };
+        check();
+    });
 }
 
-// Initialize Firebase immediately (scripts are loaded synchronously in head)
-initFirebase();
+window.FirebaseConfig = FirebaseConfig;
+window.initFirebase = initFirebase;
+window.waitForFirebase = waitForFirebase;

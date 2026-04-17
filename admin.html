@@ -3,320 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | Rose Creative Craft</title>
+    <title>Admin Dashboard - Rose Creative Craft</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="main.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
     <link rel="stylesheet" href="admin.css">
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 </head>
-<body class="admin-body">
-    <div class="login-screen" id="loginScreen">
-        <div class="login-container">
-            <div class="login-header">
-                <span class="login-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                </span>
-                <h1>Admin Access</h1>
-                <p>Enter your password to continue</p>
+<body>
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <h1>Rose Creative Craft</h1>
+                <p>Admin Dashboard</p>
             </div>
-            <form class="login-form" id="loginForm">
+            <form id="loginForm" class="login-form">
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" placeholder="Enter admin password" required>
-                    <span class="form-error" id="loginError"></span>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+                <p id="loginError" class="error-text"></p>
+                <button type="submit" class="btn btn-primary">Login</button>
             </form>
-            <a href="index.html" class="back-link">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                Back to Site
-            </a>
+            <a href="index.html" class="back-link">Back to Site</a>
         </div>
     </div>
 
-    <div class="admin-wrapper" id="adminWrapper" style="display: none;">
-        <aside class="admin-sidebar">
+    <div id="adminWrapper" class="admin-wrapper" style="display: none;">
+        <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="index.html" class="sidebar-logo">
-                    <img src="Untitled.png" alt="Rose Creative Craft Logo" class="sidebar-logo-image">
-                    <span>Rose Creative Craft</span>
-                </a>
+                <h2>Rose Admin</h2>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="sidebar-link active" data-page="dashboard">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"/>
-                        <rect x="14" y="3" width="7" height="7"/>
-                        <rect x="14" y="14" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                     </svg>
                     Dashboard
                 </a>
                 <a href="#" class="sidebar-link" data-page="categories">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                     </svg>
                     Categories
                 </a>
                 <a href="#" class="sidebar-link" data-page="images">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                     </svg>
                     All Images
                 </a>
             </nav>
             <div class="sidebar-footer">
-                <button class="logout-btn" id="logoutBtn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <a href="index.html" class="sidebar-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    View Site
+                </a>
+                <button id="logoutBtn" class="sidebar-link logout">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16 17 21 12 16 7"/>
-                        <line x1="21" y1="12" x2="9" y2="12"/>
+                        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                     </svg>
                     Logout
                 </button>
             </div>
         </aside>
 
-        <main class="admin-main">
-            <header class="admin-header">
-                <h1 id="pageTitle">Dashboard</h1>
-                <div class="admin-actions">
-                    <button class="btn btn-secondary" id="refreshBtn" onclick="Admin.refreshData()">
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-left">
+                    <h1 id="pageTitle">Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <button id="refreshBtn" class="btn btn-secondary">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="23 4 23 10 17 10"/>
-                            <polyline points="1 20 1 14 7 14"/>
+                            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
                             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                         </svg>
                         Refresh
                     </button>
-                    <button class="btn btn-primary" id="addCategoryBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
+                    <button id="addCategoryBtn" class="btn btn-primary" style="display: none;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                         Add Category
                     </button>
                 </div>
             </header>
 
-            <div class="admin-content">
-                <div class="page" id="dashboardPage">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="totalCategories">0</span>
-                                <span class="stat-label">Categories</span>
-                            </div>
+            <div id="dashboardPage" class="page">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon categories">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                    <polyline points="21 15 16 10 5 21"/>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="totalImages">0</span>
-                                <span class="stat-label">Images</span>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon storage-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                                    <line x1="12" y1="22.08" x2="12" y2="12"/>
-                                </svg>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="storageUsed">0%</span>
-                                <span class="stat-label">Storage Used</span>
-                            </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="totalCategories">0</span>
+                            <span class="stat-label">Categories</span>
                         </div>
                     </div>
-                    
-                    <div class="storage-bar-container" id="storageBarContainer">
-                        <div class="storage-bar">
-                            <div class="storage-bar-fill" id="storageBarFill"></div>
+                    <div class="stat-card">
+                        <div class="stat-icon images">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                            </svg>
                         </div>
-                        <p class="storage-info" id="storageInfo">Calculating storage...</p>
-                        <div class="storage-actions">
-                            <button class="btn btn-secondary btn-small" onclick="Admin.confirmClearImages()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                </svg>
-                                Clear Images
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="Admin.confirmResetAll()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 6h18"/>
-                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                                    <line x1="10" y1="11" x2="10" y2="17"/>
-                                    <line x1="14" y1="11" x2="14" y2="17"/>
-                                </svg>
-                                Reset All Data
-                            </button>
+                        <div class="stat-info">
+                            <span class="stat-value" id="totalImages">0</span>
+                            <span class="stat-label">Images</span>
                         </div>
-                    </div>
-
-                    <div class="recent-section">
-                        <h2>Recent Categories</h2>
-                        <div class="categories-list" id="recentCategories"></div>
                     </div>
                 </div>
 
-                <div class="page" id="categoriesPage" style="display: none;">
-                    <div class="categories-admin-grid" id="categoriesAdminGrid"></div>
-                    <div class="empty-state" id="emptyCategories" style="display: none;">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                        </svg>
-                        <h3>No Categories</h3>
-                        <p>Create your first category to get started</p>
+                <div class="dashboard-section">
+                    <h3>Storage Usage</h3>
+                    <div class="storage-indicator">
+                        <div class="storage-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
+                        </div>
+                        <div class="storage-details">
+                            <div class="storage-bar-container" id="storageBarContainer">
+                                <div class="storage-bar-fill" id="storageBarFill" style="width: 0%"></div>
+                            </div>
+                            <span class="storage-text"><span id="storageUsed">0%</span> - <span id="storageInfo">Calculating...</span></span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="page" id="imagesPage" style="display: none;">
-                    <div class="images-admin-header">
-                        <select id="imageCategoryFilter" class="category-select">
-                            <option value="">All Categories</option>
-                        </select>
-                    </div>
-                    <div class="images-admin-grid" id="imagesAdminGrid"></div>
-                    <div class="empty-state" id="emptyImages" style="display: none;">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                            <polyline points="21 15 16 10 5 21"/>
-                        </svg>
-                        <h3>No Images</h3>
-                        <p>Upload images to categories to see them here</p>
+                <div class="dashboard-section">
+                    <h3>Recent Categories</h3>
+                    <div id="recentCategories" class="recent-list">
+                        <p class="empty-text">No categories yet. Create your first one!</p>
                     </div>
                 </div>
+            </div>
+
+            <div id="categoriesPage" class="page" style="display: none;">
+                <div id="emptyCategories" class="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <h3>No Categories Yet</h3>
+                    <p>Create your first category to organize your crafts</p>
+                    <button class="btn btn-primary" onclick="Admin.openCategoryModal()">Create Category</button>
+                </div>
+                <div id="categoriesAdminGrid" class="categories-grid"></div>
+            </div>
+
+            <div id="imagesPage" class="page" style="display: none;">
+                <div class="filter-bar">
+                    <label>Filter by Category:</label>
+                    <select id="imageCategoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div id="emptyImages" class="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <h3>No Images Yet</h3>
+                    <p>Upload images to your categories</p>
+                </div>
+                <div id="imagesAdminGrid" class="images-grid"></div>
             </div>
         </main>
     </div>
 
-    <div class="modal-overlay" id="categoryModal">
-        <div class="modal">
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title" id="categoryModalTitle">Add Category</h2>
-                <button class="modal-close" onclick="Admin.closeModal('categoryModal')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
+                <h2 id="categoryModalTitle">Add Category</h2>
+                <button class="modal-close" onclick="Admin.closeModal('categoryModal')">&times;</button>
             </div>
-            <div class="modal-body">
-                <form id="categoryForm">
-                    <input type="hidden" id="categoryId">
-                    <div class="form-group">
-                        <label for="categoryName">Category Name</label>
-                        <input type="text" id="categoryName" placeholder="e.g., Handwoven Baskets" required>
+            <form id="categoryForm" class="modal-body">
+                <input type="hidden" id="categoryId">
+                <div class="form-group">
+                    <label for="categoryName">Category Name</label>
+                    <input type="text" id="categoryName" placeholder="e.g., Wedding Cards" required>
+                </div>
+                <div class="form-group">
+                    <label>Banner Image (Optional)</label>
+                    <div id="bannerUpload" class="upload-zone">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <p>Click or drag image here</p>
+                        <span>Recommended: 600x400px</span>
                     </div>
-                    <div class="form-group">
-                        <label>Banner Image</label>
-                        <div class="upload-zone" id="bannerUpload">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
-                            </svg>
-                            <p>Drag & drop an image or <span>browse</span></p>
-                            <input type="file" id="bannerInput" accept="image/*" hidden>
-                        </div>
-                        <div class="upload-preview" id="bannerPreview" style="display: none;"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="Admin.closeModal('categoryModal')">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Category</button>
-                    </div>
-                </form>
-            </div>
+                    <input type="file" id="bannerInput" accept="image/*" style="display: none;">
+                    <div id="bannerPreview" class="image-preview" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="Admin.closeModal('categoryModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="modal-overlay" id="uploadModal">
-        <div class="modal modal-lg">
+    <div id="uploadModal" class="modal">
+        <div class="modal-content modal-lg">
             <div class="modal-header">
-                <h2 class="modal-title">Upload Images</h2>
-                <button class="modal-close" onclick="Admin.closeModal('uploadModal')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
+                <h2>Upload Images to <span id="uploadCategoryName"></span></h2>
+                <button class="modal-close" onclick="Admin.closeModal('uploadModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="upload-info">Select images for: <strong id="uploadCategoryName"></strong></p>
-                <div class="upload-zone-lg" id="multiUploadZone">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <div id="multiUploadZone" class="upload-zone multi">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="17 8 12 3 7 8"/>
                         <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    <p>Drag & drop multiple images or <span>browse</span></p>
-                    <input type="file" id="multiUploadInput" accept="image/*" multiple hidden>
+                    <p>Click or drag multiple images here</p>
+                    <span>Supports JPG, PNG, GIF</span>
                 </div>
-                <div class="upload-preview-grid" id="uploadPreviewGrid"></div>
-                <div class="upload-progress" id="uploadProgress" style="display: none;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <span class="progress-text" id="progressText">Processing images...</span>
+                <input type="file" id="multiUploadInput" accept="image/*" multiple style="display: none;">
+                <div id="uploadPreviewGrid" class="upload-preview-grid"></div>
+                <div id="uploadProgress" class="upload-progress" style="display: none;">
+                    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+                    <span id="progressText">Uploading...</span>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="Admin.closeModal('uploadModal')">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmUpload" disabled>Upload Images</button>
+                <button type="button" id="confirmUpload" class="btn btn-primary" disabled>Upload</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="deleteModal">
-        <div class="modal">
+    <div id="deleteModal" class="modal">
+        <div class="modal-content modal-sm">
             <div class="modal-header">
-                <h2 class="modal-title">Confirm Delete</h2>
-                <button class="modal-close" onclick="Admin.closeModal('deleteModal')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
+                <h2>Confirm Delete</h2>
+                <button class="modal-close" onclick="Admin.closeModal('deleteModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <p id="deleteMessage">Are you sure you want to delete this item?</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="Admin.closeModal('deleteModal')">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+                <button type="button" id="confirmDelete" class="btn btn-danger">Delete</button>
             </div>
         </div>
     </div>
 
-    <div class="toast-container" id="toastContainer"></div>
+    <div id="toastContainer" class="toast-container"></div>
 
     <script src="firebase-config.js"></script>
     <script src="storage.js"></script>

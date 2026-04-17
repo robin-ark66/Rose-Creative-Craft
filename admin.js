@@ -12,7 +12,6 @@ const Admin = {
         
         try {
             await Storage.init();
-            // Wait a bit more for Firebase sync to complete
             await new Promise(resolve => setTimeout(resolve, 500));
         } catch (e) {
             console.error('Storage init error:', e);
@@ -171,13 +170,12 @@ const Admin = {
         
         recentList.innerHTML = categories.slice(-3).reverse().map(cat => {
             const imageCount = Storage.getImageCount(cat.id);
-            const initials = cat.name.split(' ').map(w => w[0]).join('').substring(0, 2);
             
             return `
                 <div class="category-list-item">
                     ${cat.bannerImage 
-                        ? `<img src="${cat.bannerImage}" alt="${cat.name}">`
-                        : `<div class="category-placeholder" style="width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--color-surface-alt);font-family:var(--font-heading);font-size:1.25rem;font-weight:600;color:var(--color-accent);">${initials}</div>`
+                        ? `<img src="${cat.bannerImage}" alt="${cat.name}" onerror="this.style.display='none'">`
+                        : `<div class="category-placeholder" style="width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--color-surface-alt);font-family:var(--font-heading);font-size:1.25rem;font-weight:600;color:var(--color-accent);">${cat.name.substring(0,2).toUpperCase()}</div>`
                     }
                     <div class="category-list-info">
                         <span class="category-list-name">${cat.name}</span>
@@ -204,14 +202,13 @@ const Admin = {
         
         grid.innerHTML = categories.map(cat => {
             const imageCount = Storage.getImageCount(cat.id);
-            const initials = cat.name.split(' ').map(w => w[0]).join('').substring(0, 2);
             
             return `
                 <div class="category-admin-card">
                     <div class="category-admin-image">
                         ${cat.bannerImage 
-                            ? `<img src="${cat.bannerImage}" alt="${cat.name}">`
-                            : `<div class="category-admin-placeholder">${initials}</div>`
+                            ? `<img src="${cat.bannerImage}" alt="${cat.name}" onerror="this.parentElement.innerHTML='<div class=\\'category-admin-placeholder\\'>${cat.name.substring(0,2).toUpperCase()}</div>'">`
+                            : `<div class="category-admin-placeholder">${cat.name.substring(0,2).toUpperCase()}</div>`
                         }
                     </div>
                     <div class="category-admin-content">
@@ -268,7 +265,7 @@ const Admin = {
             
             return `
                 <div class="image-admin-item" data-id="${img.id}">
-                    <img src="${img.thumbnail || img.data}" alt="Image">
+                    <img src="${img.thumbnail || img.data}" alt="Image" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%23ccc\\' stroke-width=\\'1\\'%3E%3Crect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\' ry=\\'2\\'/%3E%3Ccircle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/%3E%3Cpolyline points=\\'21 15 16 10 5 21\\'/%3E%3C/svg%3E'">
                     ${category ? `<span class="image-category-badge">${category.name}</span>` : ''}
                     <div class="image-admin-overlay">
                         <button class="image-admin-btn set-banner" onclick="event.stopPropagation(); Admin.setAsBanner('${img.id}')" title="Set as banner">
@@ -304,10 +301,12 @@ const Admin = {
         const title = document.getElementById('categoryModalTitle');
         const form = document.getElementById('categoryForm');
         const preview = document.getElementById('bannerPreview');
+        const previewImg = preview.querySelector('img');
         
         form.reset();
         preview.style.display = 'none';
         preview.innerHTML = '';
+        document.getElementById('bannerUpload').removeAttribute('data-image-data');
         
         if (categoryId) {
             const category = Storage.getCategory(categoryId);
@@ -318,6 +317,7 @@ const Admin = {
             if (category.bannerImage) {
                 preview.innerHTML = `<img src="${category.bannerImage}" alt="Banner preview">`;
                 preview.style.display = 'grid';
+                document.getElementById('bannerUpload').setAttribute('data-image-data', category.bannerImage);
             }
         } else {
             title.textContent = 'Add Category';
@@ -325,6 +325,7 @@ const Admin = {
         }
         
         modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
     },
     
     editCategory(categoryId) {
@@ -370,14 +371,23 @@ const Admin = {
         const zone = document.getElementById('bannerUpload');
         
         try {
-            const processed = await ImageUtils.processFile(file);
+            const dataUrl = await this.readFileAsDataURL(file);
             
-            zone.dataset.imageData = processed.data;
-            preview.innerHTML = `<img src="${processed.data}" alt="Banner preview">`;
+            zone.setAttribute('data-image-data', dataUrl);
+            preview.innerHTML = `<img src="${dataUrl}" alt="Banner preview">`;
             preview.style.display = 'grid';
         } catch (error) {
             this.showToast('Error processing image: ' + error.message, 'error');
         }
+    },
+    
+    readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     },
     
     handleCategorySubmit(e) {
@@ -385,7 +395,7 @@ const Admin = {
         
         const name = document.getElementById('categoryName').value.trim();
         const bannerZone = document.getElementById('bannerUpload');
-        const bannerImage = bannerZone.dataset.imageData || null;
+        const bannerImage = bannerZone.getAttribute('data-image-data') || null;
         const categoryId = document.getElementById('categoryId').value;
         
         if (!name) {
@@ -408,7 +418,7 @@ const Admin = {
     
     deleteCategory(categoryId) {
         const category = Storage.getCategory(categoryId);
-        document.getElementById('deleteMessage').textContent = 
+        document.getElementById('deleteMessage').innerHTML = 
             `Are you sure you want to delete "${category.name}"? This will also delete all images in this category.`;
         
         this.deleteCallback = () => {
@@ -473,15 +483,12 @@ const Admin = {
         
         for (const file of files) {
             try {
-                const processed = await ImageUtils.processFile(file);
                 const id = 'temp_' + Date.now() + '_' + Math.random();
-                
                 const thumbnail = await this.createThumbnail(file);
                 
                 this.pendingImages.push({
                     id,
                     file,
-                    data: null,
                     thumbnail: thumbnail
                 });
                 
@@ -563,18 +570,11 @@ const Admin = {
         
         const imageDataArray = this.pendingImages.map(img => ({
             categoryId: this.uploadCategoryId,
-            data: img.data,
-            thumbnail: img.thumbnail,
-            file: img.file
+            file: img.file,
+            thumbnail: img.thumbnail
         }));
         
         const result = await Storage.addImages(imageDataArray);
-        
-        if (!result) {
-            this.showToast('Storage full! Upload failed.', 'error');
-            this.closeModal('uploadModal');
-            return;
-        }
         
         for (let i = 0; i <= 100; i += 10) {
             progressFill.style.width = i + '%';
@@ -602,48 +602,10 @@ const Admin = {
         this.openModal('deleteModal');
     },
     
-    confirmClearImages() {
-        const imageCount = Storage.getImages().length;
-        if (imageCount === 0) {
-            this.showToast('No images to clear', 'info');
-            return;
-        }
-        
-        document.getElementById('deleteMessage').textContent = 
-            `Are you sure you want to delete all ${imageCount} images? This action cannot be undone.`;
-        
-        this.deleteCallback = () => {
-            const images = Storage.getImages();
-            images.forEach(img => Storage.deleteImage(img.id));
-            this.showToast('All images deleted', 'success');
-            this.renderDashboard();
-            this.renderCategories();
-            this.renderImages();
-        };
-        
-        this.openModal('deleteModal');
-    },
-    
-    confirmResetAll() {
-        document.getElementById('deleteMessage').innerHTML = 
-            '<strong style="color: var(--color-error);">Warning!</strong> This will delete ALL categories, images, and reset the site to default. This cannot be undone!';
-        
-        this.deleteCallback = () => {
-            Storage.clearAll();
-            Storage.initializeDefaultData();
-            this.showToast('All data has been reset', 'success');
-            this.renderDashboard();
-            this.renderCategories();
-            this.renderImages();
-        };
-        
-        this.openModal('deleteModal');
-    },
-    
     setAsBanner(imageId) {
         const image = Storage.getImages().find(img => img.id === imageId);
         if (image) {
-            Storage.updateCategory(image.categoryId, { bannerImage: image.data });
+            Storage.updateCategory(image.categoryId, { bannerImage: image.data || image.thumbnail });
             this.showToast('Banner image updated', 'success');
             this.renderCategories();
         }
@@ -700,6 +662,44 @@ const Admin = {
         }
     },
     
+    confirmClearImages() {
+        const imageCount = Storage.getImages().length;
+        if (imageCount === 0) {
+            this.showToast('No images to clear', 'info');
+            return;
+        }
+        
+        document.getElementById('deleteMessage').textContent = 
+            `Are you sure you want to delete all ${imageCount} images? This action cannot be undone.`;
+        
+        this.deleteCallback = () => {
+            const images = Storage.getImages();
+            images.forEach(img => Storage.deleteImage(img.id));
+            this.showToast('All images deleted', 'success');
+            this.renderDashboard();
+            this.renderCategories();
+            this.renderImages();
+        };
+        
+        this.openModal('deleteModal');
+    },
+    
+    confirmResetAll() {
+        document.getElementById('deleteMessage').innerHTML = 
+            '<strong style="color: var(--color-error);">Warning!</strong> This will delete ALL categories, images, and reset the site to default. This cannot be undone!';
+        
+        this.deleteCallback = () => {
+            Storage.clearAll();
+            Storage.initializeDefaultData();
+            this.showToast('All data has been reset', 'success');
+            this.renderDashboard();
+            this.renderCategories();
+            this.renderImages();
+        };
+        
+        this.openModal('deleteModal');
+    },
+    
     showToast(message, type = 'info') {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
@@ -726,7 +726,6 @@ const Admin = {
     }
 };
 
-// Initialize when DOM is ready and Firebase has had time to load
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => Admin.init(), 200);
