@@ -476,18 +476,20 @@ const Admin = {
                 const processed = await ImageUtils.processFile(file);
                 const id = 'temp_' + Date.now() + '_' + Math.random();
                 
+                const thumbnail = await this.createThumbnail(file);
+                
                 this.pendingImages.push({
                     id,
                     file,
-                    data: processed.data,
-                    thumbnail: processed.thumbnail
+                    data: null,
+                    thumbnail: thumbnail
                 });
                 
                 const item = document.createElement('div');
                 item.className = 'upload-preview-item';
                 item.dataset.id = id;
                 item.innerHTML = `
-                    <img src="${processed.thumbnail}" alt="Preview">
+                    <img src="${thumbnail}" alt="Preview">
                     <button class="remove-btn" onclick="Admin.removePendingImage('${id}')">&times;</button>
                 `;
                 previewGrid.appendChild(item);
@@ -497,6 +499,43 @@ const Admin = {
         }
         
         document.getElementById('confirmUpload').disabled = this.pendingImages.length === 0;
+    },
+    
+    createThumbnail(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxSize = 200;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height) {
+                        if (width > maxSize) {
+                            height = Math.round((height * maxSize) / width);
+                            width = maxSize;
+                        }
+                    } else {
+                        if (height > maxSize) {
+                            width = Math.round((width * maxSize) / height);
+                            height = maxSize;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
     },
     
     removePendingImage(id) {
@@ -513,11 +552,6 @@ const Admin = {
     async executeUpload() {
         if (this.pendingImages.length === 0) return;
         
-        if (Storage.isStorageCritical()) {
-            this.showToast('Storage is full! Delete some images before uploading.', 'error');
-            return;
-        }
-        
         const progressContainer = document.getElementById('uploadProgress');
         const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
@@ -525,11 +559,13 @@ const Admin = {
         
         progressContainer.style.display = 'block';
         confirmBtn.disabled = true;
+        progressText.textContent = 'Uploading images to cloud...';
         
         const imageDataArray = this.pendingImages.map(img => ({
             categoryId: this.uploadCategoryId,
             data: img.data,
-            thumbnail: img.thumbnail
+            thumbnail: img.thumbnail,
+            file: img.file
         }));
         
         const result = await Storage.addImages(imageDataArray);

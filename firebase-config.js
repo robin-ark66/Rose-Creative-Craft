@@ -45,7 +45,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app, db;
+let app, db, storage;
 let firebaseReady = false;
 
 function initFirebase() {
@@ -64,8 +64,9 @@ function initFirebase() {
   try {
     app = firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    storage = firebase.storage();
     firebaseReady = true;
-    console.log("Firebase initialized successfully!");
+    console.log("Firebase initialized successfully with Storage!");
   } catch (e) {
     console.error("Firebase initialization error:", e);
     firebaseReady = false;

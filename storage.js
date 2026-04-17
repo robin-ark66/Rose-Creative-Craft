@@ -5,6 +5,7 @@ const Storage = {
         SESSION: 'craft_session'
     },
     useFirebase: false,
+    useStorage: false,
     initialized: false,
     
     async init() {
@@ -13,11 +14,12 @@ const Storage = {
             return;
         }
         
-        // Wait for firebase-config.js to initialize
         await this.waitForFirebase();
         
         this.useFirebase = typeof firebase !== 'undefined' && firebaseReady && isFirebaseConfigured();
-        console.log('Firebase status - SDK:', typeof firebase !== 'undefined', 'Ready:', firebaseReady, 'Configured:', isFirebaseConfigured(), 'Using Firebase:', this.useFirebase);
+        this.useStorage = typeof firebase !== 'undefined' && typeof storage !== 'undefined';
+        
+        console.log('Firebase status - SDK:', typeof firebase !== 'undefined', 'Ready:', firebaseReady, 'Storage:', this.useStorage);
         
         if (this.useFirebase) {
             await this.syncFromFirebase();
@@ -51,7 +53,7 @@ const Storage = {
         if (!this.useFirebase || !db) return;
         
         try {
-            console.log('Syncing from Firebase...');
+            console.log('Syncing categories from Firebase...');
             const categoriesSnap = await db.collection('categories').get();
             const categoriesData = {};
             categoriesSnap.forEach(doc => {
@@ -59,16 +61,8 @@ const Storage = {
             });
             localStorage.setItem(this.KEYS.CATEGORIES, JSON.stringify(categoriesData));
             console.log('Synced categories:', categoriesSnap.size);
-            
-            const imagesSnap = await db.collection('images').get();
-            const imagesData = {};
-            imagesSnap.forEach(doc => {
-                imagesData[doc.id] = doc.data();
-            });
-            localStorage.setItem(this.KEYS.IMAGES, JSON.stringify(imagesData));
-            console.log('Synced images:', imagesSnap.size);
         } catch (e) {
-            console.error('Sync error:', e);
+            console.error('Sync categories error:', e);
         }
     },
     
@@ -128,9 +122,7 @@ const Storage = {
     
     getCategories() {
         const data = this.get(this.KEYS.CATEGORIES);
-        if (!data) return [];
-        if (Array.isArray(data)) return data;
-        return Object.values(data);
+        return data ? Object.values(data) : [];
     },
     
     setCategories(categories) {
@@ -197,16 +189,8 @@ const Storage = {
         filtered.forEach(cat => data[cat.id] = cat);
         this.set(this.KEYS.CATEGORIES, data);
         
-        const images = this.getImages();
-        const filteredImages = images.filter(img => img.categoryId !== id);
-        const imagesData = {};
-        filteredImages.forEach(img => imagesData[img.id] = img);
-        this.set(this.KEYS.IMAGES, imagesData);
-        
         if (this.useFirebase) {
             await this.deleteFromFirebase('categories', id);
-            const allImages = await db.collection('images').where('categoryId', '==', id).get();
-            allImages.forEach(doc => doc.ref.delete());
         }
         return true;
     },
@@ -232,67 +216,97 @@ const Storage = {
         return this.set(this.KEYS.IMAGES, data);
     },
     
-    async addImage(imageData) {
-        const images = this.getImages();
-        const newImage = {
-            id: this.generateId(),
-            categoryId: imageData.categoryId,
-            data: imageData.data,
-            thumbnail: imageData.thumbnail || imageData.data,
-            createdAt: new Date().toISOString()
-        };
-        images.push(newImage);
-        
-        const data = {};
-        images.forEach(img => data[img.id] = img);
-        this.set(this.KEYS.IMAGES, data);
-        
-        if (this.useFirebase) {
-            await this.saveToFirebase('images', newImage.id, newImage);
+    async uploadToStorage(file, id) {
+        if (!this.useStorage || !storage) {
+            console.log('Firebase Storage not available, using base64');
+            return null;
         }
         
-        return newImage;
+        try {
+            const fileName = 'images/' + id + '_' + file.name;
+            const ref = storage.ref(fileName);
+            await ref.put(file);
+            const url = await ref.getDownloadURL();
+            return url;
+        } catch (e) {
+            console.error('Upload to Storage error:', e);
+            return null;
+        }
+    },
+    
+    async deleteFromStorage(imageUrl) {
+        if (!this.useStorage || !storage || !imageUrl) return;
+        
+        try {
+            if (imageUrl.includes('firebasestorage.app') || imageUrl.includes('googleapis.com')) {
+                const ref = storage.refFromURL(imageUrl);
+                await ref.delete();
+            }
+        } catch (e) {
+            console.error('Delete from Storage error:', e);
+        }
     },
     
     async addImages(imageDataArray) {
-        const images = this.getImages();
-        const newImages = imageDataArray.map(data => ({
-            id: this.generateId(),
-            categoryId: data.categoryId,
-            data: data.data,
-            thumbnail: data.thumbnail || data.data,
-            createdAt: new Date().toISOString()
-        }));
-        images.push(...newImages);
+        const newImages = [];
         
-        const data = {};
-        images.forEach(img => data[img.id] = img);
-        this.set(this.KEYS.IMAGES, data);
+        console.log('Processing', imageDataArray.length, 'images...');
         
-        console.log('Saving', newImages.length, 'images to Firebase:', this.useFirebase);
-        
-        if (this.useFirebase) {
-            for (const img of newImages) {
-                console.log('Saving image to Firebase:', img.id);
-                await this.saveToFirebase('images', img.id, img);
+        for (const imgData of imageDataArray) {
+            const id = this.generateId();
+            
+            let imageUrl = imgData.data;
+            let thumbnailUrl = imgData.thumbnail || imgData.data;
+            
+            if (this.useStorage && imgData.file) {
+                console.log('Uploading image to Firebase Storage:', id);
+                const url = await this.uploadToStorage(imgData.file, id);
+                if (url) {
+                    imageUrl = url;
+                    thumbnailUrl = url;
+                }
             }
-            console.log('All images saved to Firebase');
+            
+            const newImage = {
+                id: id,
+                categoryId: imgData.categoryId,
+                data: imageUrl,
+                thumbnail: thumbnailUrl,
+                createdAt: new Date().toISOString(),
+                isStorageUrl: this.useStorage && imageUrl.includes('firebasestorage.app')
+            };
+            
+            newImages.push(newImage);
+            
+            if (this.useFirebase) {
+                await this.saveToFirebase('images', id, newImage);
+            }
         }
+        
+        const images = this.getImages();
+        images.push(...newImages);
+        this.setImages(images);
+        
+        console.log('Saved', newImages.length, 'images to local storage');
         
         return newImages;
     },
     
     async deleteImage(id) {
         const images = this.getImages();
+        const imageToDelete = images.find(img => img.id === id);
         const filtered = images.filter(img => img.id !== id);
         
-        const data = {};
-        filtered.forEach(img => data[img.id] = img);
-        this.set(this.KEYS.IMAGES, data);
+        this.setImages(filtered);
         
         if (this.useFirebase) {
             await this.deleteFromFirebase('images', id);
         }
+        
+        if (imageToDelete && this.useStorage) {
+            await this.deleteFromStorage(imageToDelete.data);
+        }
+        
         return true;
     },
     
@@ -432,8 +446,14 @@ const ImageUtils = {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                    resolve(dataUrl);
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                            resolve(dataUrl);
+                        }
+                    }, 'image/jpeg', quality);
                 };
                 img.onerror = reject;
                 img.src = e.target.result;
@@ -441,10 +461,6 @@ const ImageUtils = {
             reader.onerror = reject;
             reader.readAsDataURL(file);
         });
-    },
-    
-    async createThumbnail(file) {
-        return this.compressImage(file, this.THUMBNAIL_DIMENSION, 0.7);
     },
     
     async processFile(file) {
@@ -457,10 +473,7 @@ const ImageUtils = {
             throw new Error('File size exceeds 10MB limit');
         }
         
-        const data = await this.compressImage(file);
-        const thumbnail = await this.createThumbnail(file);
-        
-        return { data, thumbnail };
+        return { file: file, data: null, thumbnail: null };
     },
     
     async processFiles(files) {
@@ -474,18 +487,6 @@ const ImageUtils = {
             }
         }
         return results;
-    },
-    
-    getFileFromDataUrl(dataUrl) {
-        const arr = dataUrl.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-        }
-        return new Blob([u8arr], { type: mime });
     },
     
     formatFileSize(bytes) {
