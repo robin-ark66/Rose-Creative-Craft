@@ -39,15 +39,24 @@ const App = {
     setupNavigation() {
         const navToggle = document.getElementById('navToggle');
         const navLinks = document.getElementById('navLinks');
+        const nav = document.querySelector('.nav');
 
         if (navToggle && navLinks) {
-            navToggle.addEventListener('click', () => {
+            navToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
                 navToggle.classList.toggle('active');
                 navLinks.classList.toggle('active');
             });
 
+            document.addEventListener('click', (e) => {
+                if (!nav.contains(e.target)) {
+                    navToggle.classList.remove('active');
+                    navLinks.classList.remove('active');
+                }
+            });
+
             document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', () => {
+                link.addEventListener('click', (e) => {
                     navToggle.classList.remove('active');
                     navLinks.classList.remove('active');
                 });

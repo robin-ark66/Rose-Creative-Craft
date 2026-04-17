@@ -1073,6 +1073,7 @@ input, textarea {
         transform: translateY(-10px);
         opacity: 0;
         visibility: hidden;
+        pointer-events: none;
         transition: all 0.3s ease;
         z-index: 999;
     }
@@ -1081,6 +1082,7 @@ input, textarea {
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
+        pointer-events: auto;
     }
 
     .nav-links li {
@@ -1093,7 +1095,7 @@ input, textarea {
         border-bottom: 1px solid var(--color-border);
     }
 
-    .nav-links .nav-link:hover {
+    .nav-links .nav-link:active {
         background: var(--color-surface-alt);
     }
 
