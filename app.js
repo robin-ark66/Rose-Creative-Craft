@@ -53,6 +53,11 @@ const App = {
                 });
             });
         }
+
+        const backBtn = document.getElementById('backToCategories');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => this.backToCategories());
+        }
     },
 
     setupScrollEffects() {
