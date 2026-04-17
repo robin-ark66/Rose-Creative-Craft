@@ -58,6 +58,19 @@ const App = {
         if (backBtn) {
             backBtn.addEventListener('click', () => this.backToCategories());
         }
+
+        document.querySelectorAll('.hero-actions a').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = btn.getAttribute('href');
+                const element = document.querySelector(target);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }
+                navLinks.classList.remove('active');
+                navToggle.classList.remove('active');
+            });
+        });
     },
 
     setupScrollEffects() {
@@ -123,7 +136,8 @@ const App = {
     loadCategories() {
         try {
             const categories = Storage.getCategories();
-            this.renderCategories(categories);
+            const sortedCategories = categories.sort((a, b) => a.name.localeCompare(b.name));
+            this.renderCategories(sortedCategories);
         } catch (e) {
             console.error('Error loading categories:', e);
             this.renderCategories([]);
@@ -180,6 +194,11 @@ const App = {
     viewCategory(categoryId) {
         const category = Storage.getCategory(categoryId);
         if (category) {
+            const navToggle = document.getElementById('navToggle');
+            const navLinks = document.getElementById('navLinks');
+            if (navToggle) navToggle.classList.remove('active');
+            if (navLinks) navLinks.classList.remove('active');
+            
             window.location.hash = `gallery/${categoryId}`;
         }
     },
@@ -231,11 +250,20 @@ const App = {
         if (galleryTitle) galleryTitle.textContent = category.name;
         
         Gallery.loadGallery(categoryId);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        setTimeout(() => {
+            gallerySection.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
     },
 
     backToCategories() {
-        window.location.hash = '';
+        const categoriesSection = document.querySelector('.categories');
+        const gallerySection = document.querySelector('.gallery');
+        
+        if (categoriesSection) categoriesSection.style.display = 'block';
+        if (gallerySection) gallerySection.style.display = 'none';
+        
+        categoriesSection.scrollIntoView({ behavior: 'smooth' });
     },
 
     showToast(message, type = 'info') {
