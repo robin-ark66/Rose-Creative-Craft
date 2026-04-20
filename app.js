@@ -16,6 +16,7 @@ const App = {
         this.setupScrollEffects();
         this.setupContactForm();
         this.loadCategories();
+        this.loadTestimonials();
         this.checkUrlHash();
         window.addEventListener('hashchange', () => this.checkUrlHash());
 
@@ -151,6 +152,44 @@ const App = {
             console.error('Error loading categories:', e);
             this.renderCategories([]);
         }
+    },
+
+    loadTestimonials() {
+        try {
+            const testimonials = Storage.getTestimonials();
+            this.renderTestimonials(testimonials);
+        } catch (e) {
+            console.error('Error loading testimonials:', e);
+            this.renderTestimonials([]);
+        }
+    },
+
+    renderTestimonials(testimonials) {
+        const grid = document.getElementById('testimonialsGrid');
+        if (!grid) return;
+
+        if (!testimonials || testimonials.length === 0) {
+            grid.innerHTML = '';
+            return;
+        }
+
+        grid.innerHTML = testimonials.map(t => {
+            const initials = t.author.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+            const stars = '★'.repeat(t.rating) + '☆'.repeat(5 - t.rating);
+
+            return `
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">${stars}</div>
+                    <p class="testimonial-text">"${t.text}"</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">${initials}</div>
+                        <div class="testimonial-info">
+                            <strong>${t.author}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     },
 
     renderCategories(categories) {

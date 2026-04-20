@@ -3,6 +3,7 @@ const Storage = {
     firebaseReady: false,
     categories: [],
     images: [],
+    testimonials: [],
     sessionKey: 'rose_admin_session',
     initialized: false,
 
@@ -26,11 +27,60 @@ const Storage = {
         try {
             const cats = localStorage.getItem('rose_categories');
             const imgs = localStorage.getItem('rose_images');
+            const tests = localStorage.getItem('rose_testimonials');
             this.categories = cats ? JSON.parse(cats) : [];
             this.images = imgs ? JSON.parse(imgs) : [];
+            this.testimonials = tests ? JSON.parse(tests) : this.getDefaultTestimonials();
         } catch (e) {
             this.categories = [];
             this.images = [];
+            this.testimonials = this.getDefaultTestimonials();
+        }
+    },
+
+    getDefaultTestimonials() {
+        return [
+            { id: 't1', text: 'Beautiful handcrafted items! Loved the wedding accessories.', author: 'Priya Sharma', rating: 5 },
+            { id: 't2', text: 'Amazing quality and timely delivery. Highly recommended!', author: 'Rajesh Kumar', rating: 5 },
+            { id: 't3', text: 'Great customer service and beautiful designs.', author: 'Anita Reddy', rating: 4 }
+        ];
+    },
+
+    getTestimonials() {
+        return this.testimonials;
+    },
+
+    addTestimonial(data) {
+        const id = 't_' + Date.now();
+        const testimonial = {
+            id,
+            text: data.text,
+            author: data.author,
+            rating: data.rating || 5
+        };
+        this.testimonials.push(testimonial);
+        this.saveTestimonialsToLocal();
+        return testimonial;
+    },
+
+    updateTestimonial(id, data) {
+        const index = this.testimonials.findIndex(t => t.id === id);
+        if (index !== -1) {
+            this.testimonials[index] = { ...this.testimonials[index], ...data };
+            this.saveTestimonialsToLocal();
+        }
+    },
+
+    deleteTestimonial(id) {
+        this.testimonials = this.testimonials.filter(t => t.id !== id);
+        this.saveTestimonialsToLocal();
+    },
+
+    saveTestimonialsToLocal() {
+        try {
+            localStorage.setItem('rose_testimonials', JSON.stringify(this.testimonials));
+        } catch (e) {
+            console.error('Error saving testimonials:', e);
         }
     },
 
@@ -38,6 +88,7 @@ const Storage = {
         try {
             localStorage.setItem('rose_categories', JSON.stringify(this.categories));
             localStorage.setItem('rose_images', JSON.stringify(this.images));
+            localStorage.setItem('rose_testimonials', JSON.stringify(this.testimonials));
         } catch (e) {
             console.error('LocalStorage save failed:', e);
         }

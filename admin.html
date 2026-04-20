@@ -57,6 +57,12 @@
                     </svg>
                     All Images
                 </a>
+                <a href="#" class="sidebar-link" data-page="testimonials">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Testimonials
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <a href="index.html" class="sidebar-link">
@@ -179,6 +185,18 @@
                 </div>
                 <div id="imagesAdminGrid" class="images-grid"></div>
             </div>
+
+            <div id="testimonialsPage" class="page" style="display: none;">
+                <div id="emptyTestimonials" class="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <h3>No Testimonials Yet</h3>
+                    <p>Add testimonials from your happy clients</p>
+                    <button class="btn btn-primary" onclick="Admin.openTestimonialModal()">Add Testimonial</button>
+                </div>
+                <div id="testimonialsAdminGrid" class="testimonials-grid"></div>
+            </div>
         </main>
     </div>
 
@@ -261,7 +279,45 @@
         </div>
     </div>
 
-    <div id="toastContainer" class="toast-container"></div>
+    <div id="testimonialModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="testimonialModalTitle">Add Testimonial</h2>
+                <button class="modal-close" onclick="Admin.closeModal('testimonialModal')">&times;</button>
+            </div>
+            <form id="testimonialForm" class="modal-body">
+                <input type="hidden" id="testimonialId">
+                <div class="form-group">
+                    <label for="testimonialText">Testimonial</label>
+                    <textarea id="testimonialText" placeholder="What did the client say?" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="testimonialAuthor">Client Name</label>
+                    <input type="text" id="testimonialAuthor" placeholder="e.g., John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label for="testimonialRating">Rating</label>
+                    <select id="testimonialRating">
+                        <option value="5">★★★★★ (5)</option>
+                        <option value="4">★★★★☆ (4)</option>
+                        <option value="3">★★★☆☆ (3)</option>
+                        <option value="2">★★☆☆☆ (2)</option>
+                        <option value="1">★☆☆☆☆ (1)</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="Admin.closeModal('testimonialModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="storage.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
 
     <script src="firebase-config.js"></script>
     <script src="storage.js"></script>
