@@ -58,6 +58,15 @@ const App = {
 
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
+                    const href = link.getAttribute('href');
+                    if (href && href.startsWith('#')) {
+                        e.preventDefault();
+                        const target = href.substring(1);
+                        const element = document.getElementById(target);
+                        if (element) {
+                            element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    }
                     navToggle.classList.remove('active');
                     navLinks.classList.remove('active');
                 });
@@ -67,6 +76,26 @@ const App = {
         const backBtn = document.getElementById('backToCategories');
         if (backBtn) {
             backBtn.addEventListener('click', () => this.backToCategories());
+        }
+
+        const testimonialForm = document.getElementById('testimonialForm');
+        if (testimonialForm) {
+            testimonialForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const author = testimonialForm.querySelector('[name="author"]').value.trim();
+                const text = testimonialForm.querySelector('[name="text"]').value.trim();
+                const rating = parseInt(testimonialForm.querySelector('[name="rating"]').value);
+
+                if (!author || !text) {
+                    this.showToast('Please fill all fields', 'error');
+                    return;
+                }
+
+                Storage.addTestimonial({ author, text, rating });
+                this.showToast('Thank you! Your testimonial has been submitted.', 'success');
+                testimonialForm.reset();
+                this.loadTestimonials();
+            });
         }
 
         document.querySelectorAll('.hero-actions a').forEach(btn => {

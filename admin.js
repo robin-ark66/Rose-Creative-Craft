@@ -92,6 +92,9 @@ const Admin = {
         document.getElementById('imageCategoryFilter').addEventListener('change', (e) => {
             this.renderImages(e.target.value);
         });
+
+        const testimonialForm = document.getElementById('testimonialForm');
+        testimonialForm.addEventListener('submit', (e) => this.handleTestimonialSubmit(e));
     },
     
     handleLogin(e) {
@@ -124,12 +127,23 @@ const Admin = {
         const titles = {
             dashboard: 'Dashboard',
             categories: 'Categories',
-            images: 'All Images'
+            images: 'All Images',
+            testimonials: 'Testimonials'
         };
         document.getElementById('pageTitle').textContent = titles[page];
         
         const addBtn = document.getElementById('addCategoryBtn');
-        addBtn.style.display = page === 'categories' ? 'flex' : 'none';
+        if (page === 'categories') {
+            addBtn.style.display = 'flex';
+            addBtn.textContent = 'Add Category';
+            addBtn.onclick = () => this.openCategoryModal();
+        } else if (page === 'testimonials') {
+            addBtn.style.display = 'flex';
+            addBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Testimonial';
+            addBtn.onclick = () => this.openTestimonialModal();
+        } else {
+            addBtn.style.display = 'none';
+        }
         
         document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
         document.getElementById(page + 'Page').style.display = 'block';
@@ -148,6 +162,9 @@ const Admin = {
             case 'images':
                 this.renderImages();
                 this.populateCategoryFilter();
+                break;
+            case 'testimonials':
+                this.renderTestimonials();
                 break;
         }
     },
@@ -618,7 +635,105 @@ const Admin = {
         }
         this.closeModal('deleteModal');
     },
-    
+
+    renderTestimonials() {
+        const grid = document.getElementById('testimonialsAdminGrid');
+        const emptyState = document.getElementById('emptyTestimonials');
+        const testimonials = Storage.getTestimonials();
+
+        if (testimonials.length === 0) {
+            grid.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        grid.style.display = 'grid';
+        emptyState.style.display = 'none';
+
+        grid.innerHTML = testimonials.map(t => {
+            const stars = '★'.repeat(t.rating) + '☆'.repeat(5 - t.rating);
+            return `
+                <div class="testimonial-admin-card">
+                    <div class="testimonial-admin-rating">${stars}</div>
+                    <p class="testimonial-admin-text">"${t.text}"</p>
+                    <div class="testimonial-admin-author">
+                        <strong>${t.author}</strong>
+                    </div>
+                    <div class="testimonial-admin-actions">
+                        <button class="btn btn-secondary" onclick="Admin.editTestimonial('${t.id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="Admin.deleteTestimonial('${t.id}')">Delete</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    openTestimonialModal(testimonialId = null) {
+        this.editingTestimonialId = testimonialId;
+        const modal = document.getElementById('testimonialModal');
+        const form = document.getElementById('testimonialForm');
+
+        form.reset();
+        document.getElementById('testimonialModalTitle').textContent = testimonialId ? 'Edit Testimonial' : 'Add Testimonial';
+
+        if (testimonialId) {
+            const testimonial = Storage.getTestimonials().find(t => t.id === testimonialId);
+            if (testimonial) {
+                document.getElementById('testimonialId').value = testimonialId;
+                document.getElementById('testimonialText').value = testimonial.text;
+                document.getElementById('testimonialAuthor').value = testimonial.author;
+                document.getElementById('testimonialRating').value = testimonial.rating;
+            }
+        } else {
+            document.getElementById('testimonialId').value = '';
+        }
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    },
+
+    editTestimonial(testimonialId) {
+        this.openTestimonialModal(testimonialId);
+    },
+
+    handleTestimonialSubmit(e) {
+        e.preventDefault();
+
+        const testimonialId = document.getElementById('testimonialId').value;
+        const text = document.getElementById('testimonialText').value.trim();
+        const author = document.getElementById('testimonialAuthor').value.trim();
+        const rating = parseInt(document.getElementById('testimonialRating').value);
+
+        if (!text || !author) {
+            this.showToast('Please fill all fields', 'error');
+            return;
+        }
+
+        if (testimonialId) {
+            Storage.updateTestimonial(testimonialId, { text, author, rating });
+            this.showToast('Testimonial updated', 'success');
+        } else {
+            Storage.addTestimonial({ text, author, rating });
+            this.showToast('Testimonial added', 'success');
+        }
+
+        this.closeModal('testimonialModal');
+        this.renderTestimonials();
+    },
+
+    deleteTestimonial(testimonialId) {
+        const testimonial = Storage.getTestimonials().find(t => t.id === testimonialId);
+        document.getElementById('deleteMessage').textContent = `Delete testimonial from "${testimonial.author}"?`;
+
+        this.deleteCallback = () => {
+            Storage.deleteTestimonial(testimonialId);
+            this.showToast('Testimonial deleted', 'success');
+            this.renderTestimonials();
+        };
+
+        this.openModal('deleteModal');
+    },
+
     openModal(id) {
         document.getElementById(id).classList.add('active');
         document.body.style.overflow = 'hidden';
